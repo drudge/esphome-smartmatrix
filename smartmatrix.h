@@ -5,6 +5,8 @@
 
 #include <webp/demux.h>
 
+//#define TIDBYT
+
 #define TOPIC_PREFIX "plm"
 
 #define BLACK           {0x00,0x00,0x00}
@@ -37,7 +39,61 @@ const int WELCOME = 1;
 const int APPLET = 2;
 const int NONE = 0;
 
+#ifdef TIDBYT
+
+// Change these to whatever suits
+#define R1_PIN 21
+#define G1_PIN 2
+#define B1_PIN 22
+#define R2_PIN 23
+#define G2_PIN 4
+#define B2_PIN 27
+#define A_PIN 26
+#define B_PIN 5
+#define C_PIN 25
+#define D_PIN 18
+#define E_PIN -1 // required for 1/32 scan panels, like 64x64px. Any available pin would do, i.e. IO32
+#define LAT_PIN 19
+#define OE_PIN 32
+#define CLK_PIN 33
+
+HUB75_I2S_CFG::i2s_pins _pins={R1_PIN, G1_PIN, B1_PIN, R2_PIN, G2_PIN, B2_PIN, A_PIN, B_PIN, C_PIN, D_PIN, E_PIN, LAT_PIN, OE_PIN, CLK_PIN};
+
+HUB75_I2S_CFG mxconfig(
+	64, // Module width
+	32, // Module height
+	1, // chain length
+	_pins // pin mapping
+);
+MatrixPanel_I2S_DMA dma_display = MatrixPanel_I2S_DMA(mxconfig);
+#elseif ADAFRUIT_FEATHER_WING
+#define R1_PIN 6
+#define G1_PIN 5
+#define B1_PIN 9
+#define R2_PIN 11
+#define G2_PIN 10
+#define B2_PIN 12
+#define A_PIN 8
+#define B_PIN 14
+#define C_PIN 15
+#define D_PIN 16
+#define E_PIN -1
+#define CLK_PIN 13
+#define LAT_PIN 38
+#define OE_PIN 39
+
+HUB75_I2S_CFG::i2s_pins _pins={R1_PIN, G1_PIN, B1_PIN, R2_PIN, G2_PIN, B2_PIN, A_PIN, B_PIN, C_PIN, D_PIN, E_PIN, LAT_PIN, OE_PIN, CLK_PIN};
+
+HUB75_I2S_CFG mxconfig(
+	64, // Module width
+	32, // Module height
+	1, // chain length
+	_pins // pin mapping
+);
+MatrixPanel_I2S_DMA dma_display = MatrixPanel_I2S_DMA(mxconfig);
+#else
 MatrixPanel_I2S_DMA dma_display = MatrixPanel_I2S_DMA();
+#endif
 
 boolean newapplet = false;
 

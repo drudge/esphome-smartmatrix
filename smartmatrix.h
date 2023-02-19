@@ -6,6 +6,8 @@
 
 #include <webp/demux.h>
 
+#include <Fonts/TomThumb.h>
+
 //#define TIDBYT
 //#define ADAFRUIT_FEATHER_WING
 
@@ -84,6 +86,8 @@ int currentBrightness = 100;
 unsigned long bufferPos;
 bool recv_length = false;
 bool need_publish = true;
+bool need_subscribe = true;
+bool display_initialized = false;
 
 uint8_t *tmpbuf;
 uint8_t tempPixelBuffer[MATRIX_HEIGHT * MATRIX_WIDTH * 4];
@@ -137,15 +141,18 @@ void showReady(const char *message, const char *id)
   dma_display.print(id);
 }
 
-void displayMessage(const char *message, uint8_t brightness)
-{
+void sayHello() {
+  if (!display_initialized) {
+    return;
+  }
+
   int16_t xOne, yOne;
   uint16_t w, h;
   uint8_t targetBrightness = 0;
+  const char* message = "Hello";
 
   dma_display.clearScreen();
   dma_display.setBrightness8(targetBrightness);
-
   dma_display.setCursor(0, 0);
   dma_display.setFont(NULL);
   dma_display.setTextSize(1);
@@ -159,7 +166,7 @@ void displayMessage(const char *message, uint8_t brightness)
   dma_display.setCursor(xPosition, yPosition);
   dma_display.print(message);
 
-  while (targetBrightness < brightness) {
+  while (targetBrightness < currentBrightness) {
     dma_display.setBrightness8(targetBrightness);
     targetBrightness++;
     delay(10);
@@ -172,12 +179,35 @@ void displayMessage(const char *message, uint8_t brightness)
     targetBrightness--;
     delay(10);
   }
-
-  dma_display.clearScreen();
   
   delay(500);
 
-  dma_display.setBrightness8(brightness);
+  dma_display.setBrightness8(currentBrightness);
+}
+
+void showConnecting(const char *message)
+{
+  if (!display_initialized) {
+    return;
+  }
+
+  dma_display.clearScreen();
+
+  int16_t xOne, yOne;
+  uint16_t w, h;
+
+  dma_display.setFont(&TomThumb);
+  dma_display.setCursor(0, 0);
+  dma_display.setTextSize(1);
+  dma_display.setTextWrap(false);
+  dma_display.setTextColor(dma_display.color565(255, 255, 255));
+  dma_display.getTextBounds(message, 0, 0, &xOne, &yOne, &w, &h);
+  
+  int xPosition = dma_display.width() / 2 - w / 2 + 1;
+  int yPosition = dma_display.height() / 2 - h / 2 + 6;
+
+  dma_display.setCursor(xPosition, yPosition);
+  dma_display.print(message);
 }
 
 void setBrightness(int brightness)
@@ -190,7 +220,9 @@ void setBrightness(int brightness)
   }
 
   currentBrightness = brightness;
-  dma_display.setBrightness8(brightness);
+  if (display_initialized) {
+    dma_display.setBrightness8(brightness);
+  }
 }
 
 void changeBrightness(int delta) {
@@ -208,14 +240,13 @@ class SmartMatrixBrightnessOutput : public Component, public LightOutput {
 
   void write_state(LightState *state) override {
     int newBrightness = state->current_values.get_brightness() * 255;
-    // Serial.println("write_state" + String(newBrightness));
     setBrightness(newBrightness);
   }
 };
 
 class SmartMatrixComponent : public Component, public CustomMQTTDevice {
  public:
-  float get_setup_priority() const override { return setup_priority::AFTER_WIFI; }
+  float get_setup_priority() const override { return setup_priority::PROCESSOR; }
 
   void on_message(const std::string &payload) {
     const char *payloadstr = payload.c_str();
@@ -224,17 +255,14 @@ class SmartMatrixComponent : public Component, public CustomMQTTDevice {
     if (strncmp(payloadstr,"START",5) == 0) {
       recv_length = false;
       bufferPos = 0;
-      strcpy(messageToPublish, "OK");
-      need_publish = true;
+      publishMessage("OK");
     } else if (strncmp(payloadstr,"PING",4) == 0) {
-      strcpy(messageToPublish, "PONG");
-      need_publish = true;
+      publishMessage("PONG");
     } else if (!recv_length) {
       bufsize = atoi(payloadstr);
       tmpbuf = (uint8_t *) malloc(bufsize);
       recv_length = true;
-      strcpy(messageToPublish, "OK");
-      need_publish = true;
+      publishMessage("OK");
     } else {
         if (strncmp(payloadstr,"FINISH",6) == 0) {
           if (strncmp((const char*)tmpbuf, "RIFF", 4) == 0) {
@@ -248,31 +276,40 @@ class SmartMatrixComponent : public Component, public CustomMQTTDevice {
             webp_data.bytes = (uint8_t *) WebPMalloc(bufsize);
 
             if (webp_data.bytes == NULL) {
-              strcpy(messageToPublish, "DECODE_ERROR");
-              need_publish = true;
+              publishMessage("DECODE_ERROR");
             } else {
               memcpy((void *)webp_data.bytes, tmpbuf, bufsize);
 
               //set display flags!
               newapplet = true;
               currentMode = APPLET;
-              strcpy(messageToPublish, "PUSHED");
-              need_publish = true;
+              publishMessage("PUSHED");
             }
             free(tmpbuf);
           } else {
-            strcpy(messageToPublish, "DECODE_ERROR");
-            need_publish = true;
+            publishMessage("DECODE_ERROR");
           }
           bufferPos = 0;
           recv_length = false;
         } else {
             memcpy((void *)(tmpbuf+bufferPos), payloadstr, length);
             bufferPos += length;
-            strcpy(messageToPublish, "OK");
-            need_publish = true;
+            publishMessage("OK");
         }
     }
+  }
+
+  void publishMessage(std::string message) {
+    strcpy(messageToPublish, message.c_str());
+    need_publish = true;
+  }
+
+  void attachToServer() {
+    if (need_subscribe) {
+      subscribe(applet_topic, &SmartMatrixComponent::on_message);
+      need_subscribe = false;
+    }
+    publishMessage("DEVICE_BOOT");
   }
 
   void setup() override {
@@ -284,81 +321,94 @@ class SmartMatrixComponent : public Component, public CustomMQTTDevice {
     snprintf_P(applet_topic, 22, PSTR("%s/%s/rx"), TOPIC_PREFIX, macFull);
     snprintf_P(applet_rts_topic, 26, PSTR("%s/%s/tx"), TOPIC_PREFIX, macFull);
 
-    dma_display.begin();
-    dma_display.clearScreen();
+    if (!display_initialized) {
+      dma_display.begin();
+      dma_display.clearScreen();
+      dma_display.setBrightness8(currentBrightness);
 
-    displayMessage("Hello", currentBrightness);
+      display_initialized = true;
 
-    subscribe(applet_topic, &SmartMatrixComponent::on_message);
+      sayHello();
+    }
 
-    strcpy(messageToPublish, "DEVICE_BOOT");
-    need_publish = true;
-
-    showReady("Ready", macFull);
+    if (is_connected()) {
+      attachToServer();
+    }
   }
 
   void loop() override {
     if (!is_connected()) {
-      displayMessage("Connecting...", currentBrightness);
-    }
+      showConnecting("Connecting.  ");
+      delay(400);
+      showConnecting("Connecting.. ");
+      delay(400);
+      showConnecting("Connecting...");
+      delay(400);
+    } else {
+      if (need_subscribe) {
+        attachToServer();
+      }
 
-    if (need_publish) {
-      publish(applet_rts_topic, messageToPublish);
-      need_publish = false;
-    }
+      if (need_publish) {
+        publish(applet_rts_topic, messageToPublish);
+        need_publish = false;
+      }
 
-    if (currentMode == APPLET) {
-      if (newapplet) {
-        demux = WebPDemux(&webp_data);
-        frame_count = WebPDemuxGetI(demux, WEBP_FF_FRAME_COUNT);
-        webp_flags = WebPDemuxGetI(demux, WEBP_FF_FORMAT_FLAGS);
+      if (currentMode == APPLET) {
+        if (newapplet) {
+          demux = WebPDemux(&webp_data);
+          frame_count = WebPDemuxGetI(demux, WEBP_FF_FRAME_COUNT);
+          webp_flags = WebPDemuxGetI(demux, WEBP_FF_FORMAT_FLAGS);
 
-        newapplet = false;
-        current_frame = 1;
-      } else {
-        if (webp_flags & ANIMATION_FLAG) {
-          if (millis() - last_frame_time > last_frame_duration) {
-            if (WebPDemuxGetFrame(demux, current_frame, &iter)) {
-              if (WebPDecodeRGBAInto(iter.fragment.bytes, iter.fragment.size, tempPixelBuffer, iter.width * iter.height * 4, iter.width * 4) != NULL) {
-                int px = 0;
-                for (int y = iter.y_offset; y < (iter.y_offset + iter.height); y++) {
-                  for(int x = iter.x_offset; x < (iter.x_offset + iter.width); x++) {
-                    int pixelOffsetCF = ((y*MATRIX_WIDTH)+x)*3;
-                    int pixelOffsetFT = px*4;
-                    int alphaValue = tempPixelBuffer[pixelOffsetFT+3];
-                    
-                    if(alphaValue == 255) {
-                      dma_display.writePixel(x,y, dma_display.color565(tempPixelBuffer[pixelOffsetFT],tempPixelBuffer[pixelOffsetFT+1],tempPixelBuffer[pixelOffsetFT+2]));
+          newapplet = false;
+          current_frame = 1;
+        } else {
+          if (webp_flags & ANIMATION_FLAG) {
+            if (millis() - last_frame_time > last_frame_duration) {
+              if (WebPDemuxGetFrame(demux, current_frame, &iter)) {
+                if (WebPDecodeRGBAInto(iter.fragment.bytes, iter.fragment.size, tempPixelBuffer, iter.width * iter.height * 4, iter.width * 4) != NULL) {
+                  int px = 0;
+                  for (int y = iter.y_offset; y < (iter.y_offset + iter.height); y++) {
+                    for(int x = iter.x_offset; x < (iter.x_offset + iter.width); x++) {
+                      int pixelOffsetCF = ((y*MATRIX_WIDTH)+x)*3;
+                      int pixelOffsetFT = px*4;
+                      int alphaValue = tempPixelBuffer[pixelOffsetFT+3];
+                      
+                      if(alphaValue == 255) {
+                        dma_display.writePixel(x,y, dma_display.color565(tempPixelBuffer[pixelOffsetFT],tempPixelBuffer[pixelOffsetFT+1],tempPixelBuffer[pixelOffsetFT+2]));
+                      }
+                      
+                      px++;
                     }
-                    
-                    px++;
                   }
-                }
 
-                last_frame_time = millis();
-                last_frame_duration = iter.duration;
-                current_frame++;
-                if(current_frame > frame_count) {
-                  current_frame = 1;
-                }
+                  last_frame_time = millis();
+                  last_frame_duration = iter.duration;
+                  current_frame++;
+                  if(current_frame > frame_count) {
+                    current_frame = 1;
+                  }
+              }
+              } else {
+                currentMode = NONE;
+              }
             }
-            } else {
+          } else {
+            //Static WebP
+            if (WebPDecodeRGBInto(webp_data.bytes, webp_data.size, tempPixelBuffer, dma_display.height() * dma_display.width() * 3, dma_display.width() * 3) != NULL) {
+              for (int y = 0; y < dma_display.height(); y++) {
+                for (int x = 0; x < dma_display.width(); x++) {
+                  int pixBitStart = ((y*dma_display.width())+x)*3;
+                  dma_display.writePixel(x,y, dma_display.color565(tempPixelBuffer[pixBitStart],tempPixelBuffer[pixBitStart+1],tempPixelBuffer[pixBitStart+2]));
+                }
+              }
+
               currentMode = NONE;
             }
           }
-        } else {
-          //Static WebP
-          if (WebPDecodeRGBInto(webp_data.bytes, webp_data.size, tempPixelBuffer, dma_display.height() * dma_display.width() * 3, dma_display.width() * 3) != NULL) {
-            for (int y = 0; y < dma_display.height(); y++) {
-              for (int x = 0; x < dma_display.width(); x++) {
-                int pixBitStart = ((y*dma_display.width())+x)*3;
-                dma_display.writePixel(x,y, dma_display.color565(tempPixelBuffer[pixBitStart],tempPixelBuffer[pixBitStart+1],tempPixelBuffer[pixBitStart+2]));
-              }
-            }
-
-            currentMode = NONE;
-          }
         }
+      } else {
+        showReady("Ready", macFull);
       }
     }
   }

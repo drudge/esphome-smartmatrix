@@ -12,22 +12,22 @@
 
 # Pinouts
 
-|   HUB75   | Default Pin |    Tidbyt   | Adafruit Feather Wing |
-|-----------|-------------|-------------|-----------------------|
-|     R1    |    GPIO25   |    GPIO21   |          GPIO06       |
-|     G1    |    GPIO26   |    GPIO02   |          GPIO05       |
-|     B1    |    GPIO27   |    GPIO22   |          GPIO09       |
-|     R2    |    GPIO14   |    GPIO23   |          GPIO11       |
-|     G2    |    GPIO12   |    GPIO04   |          GPIO10       |
-|     B2    |    GPIO13   |    GPIO27   |          GPIO12       |
-|     A     |    GPIO23   |    GPIO26   |          GPIO08       |
-|     B     |    GPIO19   |    GPIO05   |          GPIO14       |
-|     C     |    GPIO05   |    GPIO25   |          GPIO15       |
-|     D     |    GPIO17   |    GPIO18   |          GPIO16       |
-|     E     |    -1       |    -1       |          -1           |
-|     LAT   |    GPIO04   |    GPIO19   |          GPIO38       |
-|     OE    |    GPIO15   |    GPIO32   |          GPIO39       |
-|     CLK   |    GPIO16   |    GPIO33   |          GPIO13       |
+|           | Default Pin |       Tidbyt    |    Adafruit Feather Wing  |
+|-----------|-------------|------------------|---------------------------|
+|     **R1**    |    GPIO25   |    GPIO21   |          GPIO06       |
+|     **G1**    |    GPIO26   |    GPIO02   |          GPIO05       |
+|     **B1**    |    GPIO27   |    GPIO22   |          GPIO09       |
+|     **R2**    |    GPIO14   |    GPIO23   |          GPIO11       |
+|     **G2**    |    GPIO12   |    GPIO04   |          GPIO10       |
+|     **B2**    |    GPIO13   |    GPIO27   |          GPIO12       |
+|     **A**     |    GPIO23   |    GPIO26   |          GPIO08       |
+|     **B**     |    GPIO19   |    GPIO05   |          GPIO14       |
+|     **C**     |    GPIO05   |    GPIO25   |          GPIO15       |
+|     **D**     |    GPIO17   |    GPIO18   |          GPIO16       |
+|     **E**     |    -1       |    -1       |          -1           |
+|     **LAT**   |    GPIO04   |    GPIO19   |          GPIO38       |
+|     **OE**    |    GPIO15   |    GPIO32   |          GPIO39       |
+|     **CLK**   |    GPIO16   |    GPIO33   |          GPIO13       |
 
 
 This firmware can support both Tidbyt hardware or the Adafruit RGB Feather Wing in addition to the default pinouts.

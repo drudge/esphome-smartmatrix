@@ -1,0 +1,51 @@
+esphome:
+  name: smartmatrix
+  friendly_name: smartmatrix
+  libraries:
+    - Wire
+    - SPI
+    - Adafruit BusIO
+    - Adafruit GFX Library
+    - ESP32 HUB75 LED MATRIX PANEL DMA Display
+    - https://github.com/acvigue/libwebp
+  includes:
+    - smartmatrix.h
+
+mqtt:
+  broker: !secret mqtt_hostname
+  username: !secret mqtt_username
+  password: !secret mqtt_password
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "Oa2D9e8r55lh5EFtqTdmrIkHDGLkXyZoo34fP8n/O4o="
+
+ota:
+  password: "fb44334260b722b2a06c8996b941ec4a"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+# Enable fallback hotspot (captive portal) in case wifi connection fails
+#   ap:
+#     ssid: "SmartMatrix"
+#     password: "Iv5EQtBYaIU1"
+
+# captive_portal:
+
+custom_component:
+- lambda: |-
+    auto smart_matrix = new SmartMatrixComponent();
+    return {smart_matrix};
+  components:
+  - id: smart_matrix_esp32

@@ -12,6 +12,8 @@
 
 # Pinouts
 
+![image](https://user-images.githubusercontent.com/72890/219923621-937a8f2e-1026-4c38-bb05-2691427aea0b.png)
+
 |           | Default Pin |       Tidbyt    |    Adafruit Feather Wing  |
 |----------:|:-----------:|:---------------:|:-------------------------:|
 |     **R1**    |    GPIO25   |    GPIO21   |          GPIO06       |

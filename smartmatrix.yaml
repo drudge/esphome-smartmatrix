@@ -54,7 +54,7 @@ light:
     lights:
       - name: "Matrix Display"
         restore_mode: RESTORE_DEFAULT_ON
-        icon: "mdi:brightness-percent"
+        icon: "mdi:card-text-outline"
 
 text_sensor:
   - platform: template

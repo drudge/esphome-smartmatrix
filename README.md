@@ -6,6 +6,8 @@
 * Built on the work by [acvique](https://github.com/acvigue/SmartMatrix-ESP32).
 * Applets are written using [Pixlet](https://tidbyt.dev/docs/build/build-for-tidbyt)
 * The matrix is powered by [ESP32-HUB75-MatrixPanel-DMA](https://github.com/mrfaptastic/ESP32-HUB75-MatrixPanel-DMA) and assumes the [default pinouts](https://github.com/mrfaptastic/ESP32-HUB75-MatrixPanel-DMA/blob/master/src/platforms/esp32/esp32-default-pins.hpp).
+  * This firmware can support both Tidbyt hardware or the Adafruit RGB Feather Wing in addition to the default pinouts.
+  * Uncomment the `#define TIDBYT` or `#define ADAFRUIT_FEATHER_WING` to adjust the pinout for those devices.
 * The [ESP32 Trinity](https://esp32trinity.com/) by Brian Lough is a great board to use with SmartMatrix.
 * This [64x32 panel from Waveshare](https://www.waveshare.com/rgb-matrix-p3-64x32.htm?amazon) works great with the library and is reasonably priced.
 

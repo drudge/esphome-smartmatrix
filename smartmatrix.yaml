@@ -44,3 +44,14 @@ custom_component:
     return {smart_matrix};
   components:
   - id: smart_matrix_esp32
+
+light:
+  - platform: custom
+    lambda: |-
+      auto matrix_brightness = new SmartMatrixBrightnessOutput();
+      App.register_component(matrix_brightness);
+      return {matrix_brightness};
+    lights:
+      - name: "Matrix Display"
+        restore_mode: RESTORE_DEFAULT_ON
+        icon: "mdi:brightness-percent"

@@ -38,6 +38,11 @@ This firmware can support both Tidbyt hardware or the Adafruit RGB Feather Wing 
 
 To switch, uncomment the `#define TIDBYT` or `#define ADAFRUIT_FEATHER_WING` accordingly.
 
+# Home Assistant
+
+Tha Matrix Display will appear as a light in Home Assistant. You can turn the display on or off, and also adjust the brightness as well. Brightness will be saved and restored when the device reboots.
+
+This can be useful to use in your automations to enable auto-dimming at sunset, etc.
 
 ### ESP32 Trinity Example
 

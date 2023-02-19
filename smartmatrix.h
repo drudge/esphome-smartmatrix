@@ -1,4 +1,5 @@
 
+#pragma once
 #include "esphome.h"
 
 #include <ESP32-HUB75-MatrixPanel-I2S-DMA.h>
@@ -134,6 +135,40 @@ unsigned long last_frame_time = 0;
 unsigned long last_check_tsl_time = 0;
 unsigned long last_adjust_brightness_time = 0;
 
+void showReady(const char *message, const char *id)
+{
+  int16_t xOne, yOne, xOneT, yOneT;
+  uint16_t w, h, wT, hT;
+
+  dma_display.clearScreen();
+
+  dma_display.setCursor(0, 0);
+  dma_display.setFont(NULL);
+  dma_display.setTextSize(1);
+  dma_display.setTextWrap(false);
+  dma_display.setTextColor(dma_display.color565(255, 255, 255));
+
+  dma_display.getTextBounds(message, 0, 0, &xOne, &yOne, &w, &h);
+
+  int xPosition = dma_display.width() / 2 - w / 2 + 1;
+  int yPosition = dma_display.height() / 2 - h / 2 - 4;
+
+  dma_display.setCursor(xPosition, yPosition);
+  dma_display.print(message);
+
+  dma_display.getTextBounds(id, 0, 0, &xOneT, &yOneT, &wT, &hT);
+
+  int messagesXPosition = dma_display.width() / 2 - (wT / 2) + 1;
+  int messagesYPosition = yPosition + h + 4;
+
+  dma_display.setCursor(messagesXPosition, messagesYPosition);
+  dma_display.setFont(NULL);
+  dma_display.setTextSize(1);
+  dma_display.setTextColor(dma_display.color565(0, 161, 254));
+  dma_display.setTextWrap(false);
+  dma_display.print(id);
+}
+
 void displayMessage(const char *message, uint8_t brightness)
 {
   int16_t xOne, yOne;
@@ -178,6 +213,26 @@ void displayMessage(const char *message, uint8_t brightness)
   delay(500);
 
   dma_display.setBrightness8(brightness);
+}
+
+void setBrightness(int brightness)
+{
+  if (brightness > 255)
+  {
+    brightness = 255;
+  }
+  else if (brightness < 0)
+  {
+    brightness = 0;
+  }
+
+  currentBrightness = brightness;
+  dma_display.setBrightness8(brightness);
+}
+
+void changeBrightness(int delta) {
+  int newBrightness = currentBrightness + delta;
+  setBrightness(newBrightness);
 }
 
 class SmartMatrixComponent : public Component, public CustomMQTTDevice {
@@ -257,15 +312,21 @@ class SmartMatrixComponent : public Component, public CustomMQTTDevice {
     dma_display.begin();
     dma_display.clearScreen();
 
+    displayMessage("Hello", currentBrightness);
+
     subscribe(applet_topic, &SmartMatrixComponent::on_message);
 
     strcpy(messageToPublish, "DEVICE_BOOT");
     need_publish = true;
 
-    displayMessage("Hello", currentBrightness);
+    showReady("Ready", macFull);
   }
 
   void loop() override {
+    if (!is_connected()) {
+      displayMessage("Connecting...", currentBrightness);
+    }
+
     if (need_publish) {
       publish(applet_rts_topic, messageToPublish);
       need_publish = false;

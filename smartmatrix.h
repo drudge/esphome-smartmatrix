@@ -6,6 +6,7 @@
 #include <webp/demux.h>
 
 //#define TIDBYT
+//#define ADAFRUIT_FEATHER_WING
 
 #define TOPIC_PREFIX "plm"
 

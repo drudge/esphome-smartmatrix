@@ -21,16 +21,11 @@ esp32:
   framework:
     type: arduino
 
-# Enable logging
 logger:
 
-# Enable Home Assistant API
 api:
-  encryption:
-    key: "Oa2D9e8r55lh5EFtqTdmrIkHDGLkXyZoo34fP8n/O4o="
 
 ota:
-  password: "fb44334260b722b2a06c8996b941ec4a"
 
 wifi:
   ssid: !secret wifi_ssid

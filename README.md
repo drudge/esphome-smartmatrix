@@ -8,3 +8,35 @@
 * The matrix is powered by [ESP32-HUB75-MatrixPanel-DMA](https://github.com/mrfaptastic/ESP32-HUB75-MatrixPanel-DMA) and assumes the [default pinouts](https://github.com/mrfaptastic/ESP32-HUB75-MatrixPanel-DMA/blob/master/src/platforms/esp32/esp32-default-pins.hpp).
 * The [ESP32 Trinity](https://esp32trinity.com/) by Brian Lough is a great board to use with SmartMatrix.
 * This [64x32 panel from Waveshare](https://www.waveshare.com/rgb-matrix-p3-64x32.htm?amazon) works great with the library and is reasonably priced.
+
+
+### ESP32 Trinity Example
+
+The ESP32 Trinity board has two useful touchpads that we can tap into. Here is an example that uses them to control the brightness of the display. `setBrightness` and `changeBrightness` are helpers, but you can access the `dma_display` object to use the HUB75-MatrixPanel-DMA display object directly.
+
+
+````yaml
+esp32_touch:
+  setup_mode: false
+
+binary_sensor:
+  - platform: esp32_touch
+    id: t8_touchpad
+    name: "T8 Touchpad"
+    icon: "mdi:fingerprint"
+    pin: GPIO33
+    threshold: 600
+    on_press:
+      then:
+        - lambda: changeBrightness(6);
+
+  - platform: esp32_touch
+    id: t9_touchpad
+    name: "T9 Touchpad"
+    icon: "mdi:fingerprint"
+    pin: GPIO32
+    threshold: 600
+    on_press:
+      then:
+        - lambda: changeBrightness(-6);
+```

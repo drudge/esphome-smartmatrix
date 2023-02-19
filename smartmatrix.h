@@ -18,62 +18,17 @@ const int APPLET = 2;
 const int NONE = 0;
 
 #ifdef TIDBYT
-
-// Change these to whatever suits
-#define R1_PIN 21
-#define G1_PIN 2
-#define B1_PIN 22
-#define R2_PIN 23
-#define G2_PIN 4
-#define B2_PIN 27
-#define A_PIN 26
-#define B_PIN 5
-#define C_PIN 25
-#define D_PIN 18
-#define E_PIN -1 // required for 1/32 scan panels, like 64x64px. Any available pin would do, i.e. IO32
-#define LAT_PIN 19
-#define OE_PIN 32
-#define CLK_PIN 33
-
-HUB75_I2S_CFG::i2s_pins _pins={R1_PIN, G1_PIN, B1_PIN, R2_PIN, G2_PIN, B2_PIN, A_PIN, B_PIN, C_PIN, D_PIN, E_PIN, LAT_PIN, OE_PIN, CLK_PIN};
-
-HUB75_I2S_CFG mxconfig(
-	64, // Module width
-	32, // Module height
-	1, // chain length
-	_pins // pin mapping
-);
-MatrixPanel_I2S_DMA dma_display = MatrixPanel_I2S_DMA(mxconfig);
+HUB75_I2S_CFG::i2s_pins _pins = { 21, 2, 22, 23, 4, 27, 26, 5, 25, 18, -1, 19, 32, 33 };
 #elseif ADAFRUIT_FEATHER_WING
-#define R1_PIN 6
-#define G1_PIN 5
-#define B1_PIN 9
-#define R2_PIN 11
-#define G2_PIN 10
-#define B2_PIN 12
-#define A_PIN 8
-#define B_PIN 14
-#define C_PIN 15
-#define D_PIN 16
-#define E_PIN -1
-#define CLK_PIN 13
-#define LAT_PIN 38
-#define OE_PIN 39
+HUB75_I2S_CFG::i2s_pins _pins ={ 6, 5, 9, 11, 10, 12, 8, 14, 15, 16, -1, 38, 39, 13 };
+#endif
 
-HUB75_I2S_CFG::i2s_pins _pins={R1_PIN, G1_PIN, B1_PIN, R2_PIN, G2_PIN, B2_PIN, A_PIN, B_PIN, C_PIN, D_PIN, E_PIN, LAT_PIN, OE_PIN, CLK_PIN};
-
-HUB75_I2S_CFG mxconfig(
-	64, // Module width
-	32, // Module height
-	1, // chain length
-	_pins // pin mapping
-);
-MatrixPanel_I2S_DMA dma_display = MatrixPanel_I2S_DMA(mxconfig);
+#if defined(TIDBYT) || defined(ADAFRUIT_FEATHER_WING)
+HUB75_I2S_CFG matrix_config(MATRIX_WIDTH, MATRIX_HEIGHT, CHAIN_LENGTH, _pins);
+MatrixPanel_I2S_DMA dma_display = MatrixPanel_I2S_DMA(matrix_config);
 #else
 MatrixPanel_I2S_DMA dma_display = MatrixPanel_I2S_DMA();
 #endif
-
-boolean newapplet = false;
 
 char applet_topic[22];
 char applet_rts_topic[26];
@@ -81,17 +36,19 @@ char messageToPublish[13];
 
 WebPData webp_data;
 
-int currentMode = WELCOME;
-int currentBrightness = 100;
-unsigned long bufferPos;
-bool recv_length = false;
+int current_mode = WELCOME;
+int current_brightness = 100;
+unsigned long buffer_position;
+bool has_received_size = false;
 bool need_publish = true;
 bool need_subscribe = true;
 bool display_initialized = false;
+bool has_new_applet = false;
+bool is_on = true;
 
-uint8_t *tmpbuf;
-uint8_t tempPixelBuffer[MATRIX_HEIGHT * MATRIX_WIDTH * 4];
-unsigned long bufsize;
+uint8_t *buffer;
+uint8_t pixel_buffer[MATRIX_HEIGHT * MATRIX_WIDTH * 4];
+unsigned long buffer_size;
 
 WebPDemuxer* demux;
 WebPIterator iter;
@@ -99,18 +56,19 @@ uint32_t webp_flags;
 uint32_t current_frame = 1;
 uint32_t frame_count;
 
-uint8_t baseMac[6];
-char macFull[6];
+uint8_t mac_address[6];
+char config_identifier[6];
 
 unsigned long last_frame_duration = 0;
 unsigned long last_frame_time = 0;
-unsigned long last_check_tsl_time = 0;
-unsigned long last_adjust_brightness_time = 0;
 
-void showReady(const char *message, const char *id)
-{
-  int16_t xOne, yOne, xOneT, yOneT;
-  uint16_t w, h, wT, hT;
+void showReady(const char *message, const char *id) {
+  if (!display_initialized) {
+    return;
+  }
+
+  int16_t x, y;
+  uint16_t w, h;
 
   dma_display.clearScreen();
 
@@ -120,20 +78,16 @@ void showReady(const char *message, const char *id)
   dma_display.setTextWrap(false);
   dma_display.setTextColor(dma_display.color565(255, 255, 255));
 
-  dma_display.getTextBounds(message, 0, 0, &xOne, &yOne, &w, &h);
+  dma_display.getTextBounds(message, 0, 0, &x, &y, &w, &h);
 
-  int xPosition = dma_display.width() / 2 - w / 2 + 1;
-  int yPosition = dma_display.height() / 2 - h / 2 - 4;
+  int x_position = dma_display.width() / 2 - w / 2 + 1;
+  int y_position = dma_display.height() / 2 - h / 2 - 4;
 
-  dma_display.setCursor(xPosition, yPosition);
+  dma_display.setCursor(x_position, y_position);
   dma_display.print(message);
+  dma_display.getTextBounds(id, 0, 0, &x, &y, &w, &h);
 
-  dma_display.getTextBounds(id, 0, 0, &xOneT, &yOneT, &wT, &hT);
-
-  int messagesXPosition = dma_display.width() / 2 - (wT / 2) + 1;
-  int messagesYPosition = yPosition + h + 4;
-
-  dma_display.setCursor(messagesXPosition, messagesYPosition);
+  dma_display.setCursor(dma_display.width() / 2 - (w / 2) + 1, y_position + h + 4);
   dma_display.setFont(NULL);
   dma_display.setTextSize(1);
   dma_display.setTextColor(dma_display.color565(0, 161, 254));
@@ -160,13 +114,13 @@ void sayHello() {
   dma_display.setTextColor(dma_display.color565(255, 255, 255));
   dma_display.getTextBounds(message, 0, 0, &xOne, &yOne, &w, &h);
   
-  int xPosition = dma_display.width() / 2 - w / 2 + 1;
-  int yPosition = dma_display.height() / 2 - h / 2 + 1;
+  int x_position = dma_display.width() / 2 - w / 2 + 1;
+  int y_position = dma_display.height() / 2 - h / 2 + 1;
 
-  dma_display.setCursor(xPosition, yPosition);
+  dma_display.setCursor(x_position, y_position);
   dma_display.print(message);
 
-  while (targetBrightness < currentBrightness) {
+  while (targetBrightness < current_brightness) {
     dma_display.setBrightness8(targetBrightness);
     targetBrightness++;
     delay(10);
@@ -182,18 +136,17 @@ void sayHello() {
   
   delay(500);
 
-  dma_display.setBrightness8(currentBrightness);
+  dma_display.setBrightness8(current_brightness);
 }
 
-void showConnecting(const char *message)
-{
+void showConnecting(const char *message) {
   if (!display_initialized) {
     return;
   }
 
   dma_display.clearScreen();
 
-  int16_t xOne, yOne;
+  int16_t x, y;
   uint16_t w, h;
 
   dma_display.setFont(&TomThumb);
@@ -201,17 +154,20 @@ void showConnecting(const char *message)
   dma_display.setTextSize(1);
   dma_display.setTextWrap(false);
   dma_display.setTextColor(dma_display.color565(255, 255, 255));
-  dma_display.getTextBounds(message, 0, 0, &xOne, &yOne, &w, &h);
+  dma_display.getTextBounds(message, 0, 0, &x, &y, &w, &h);
   
-  int xPosition = dma_display.width() / 2 - w / 2 + 1;
-  int yPosition = dma_display.height() / 2 - h / 2 + 6;
+  int x_position = dma_display.width() / 2 - w / 2 + 1;
+  int y_position = dma_display.height() / 2 - h / 2 + 6;
 
-  dma_display.setCursor(xPosition, yPosition);
+  dma_display.setCursor(x_position, y_position);
   dma_display.print(message);
 }
 
-void setBrightness(int brightness)
-{
+void setBrightness(int brightness) {
+  if (!is_on) {
+    dma_display.setBrightness8(0);
+  }
+
   if (brightness > 255) {
     brightness = 255;
   }
@@ -219,15 +175,15 @@ void setBrightness(int brightness)
     brightness = 0;
   }
 
-  currentBrightness = brightness;
+  current_brightness = brightness;
   if (display_initialized) {
-    dma_display.setBrightness8(brightness);
+    dma_display.setBrightness8(current_brightness);
   }
 }
 
 void changeBrightness(int delta) {
-  int newBrightness = currentBrightness + delta;
-  setBrightness(newBrightness);
+  int new_brightness = current_brightness + delta;
+  setBrightness(new_brightness);
 }
 
 class SmartMatrixBrightnessOutput : public Component, public LightOutput {
@@ -239,8 +195,10 @@ class SmartMatrixBrightnessOutput : public Component, public LightOutput {
   }
 
   void write_state(LightState *state) override {
-    int newBrightness = state->current_values.get_brightness() * 255;
-    setBrightness(newBrightness);
+    is_on = state->current_values.is_on();
+    int new_brightness = state->current_values.get_brightness() * 255;
+
+    setBrightness(new_brightness);
   }
 };
 
@@ -253,47 +211,47 @@ class SmartMatrixComponent : public Component, public CustomMQTTDevice {
     size_t length = payload.length();
 
     if (strncmp(payloadstr,"START",5) == 0) {
-      recv_length = false;
-      bufferPos = 0;
+      has_received_size = false;
+      buffer_position = 0;
       publishMessage("OK");
     } else if (strncmp(payloadstr,"PING",4) == 0) {
       publishMessage("PONG");
-    } else if (!recv_length) {
-      bufsize = atoi(payloadstr);
-      tmpbuf = (uint8_t *) malloc(bufsize);
-      recv_length = true;
+    } else if (!has_received_size) {
+      buffer_size = atoi(payloadstr);
+      buffer = (uint8_t *) malloc(buffer_size);
+      has_received_size = true;
       publishMessage("OK");
     } else {
         if (strncmp(payloadstr,"FINISH",6) == 0) {
-          if (strncmp((const char*)tmpbuf, "RIFF", 4) == 0) {
+          if (strncmp((const char*)buffer, "RIFF", 4) == 0) {
             //Clear and reset all libwebp buffers.
             WebPDataClear(&webp_data);
             WebPDemuxReleaseIterator(&iter);
             WebPDemuxDelete(demux);
 
             //setup webp buffer and populate from temporary buffer
-            webp_data.size = bufsize;
-            webp_data.bytes = (uint8_t *) WebPMalloc(bufsize);
+            webp_data.size = buffer_size;
+            webp_data.bytes = (uint8_t *) WebPMalloc(buffer_size);
 
             if (webp_data.bytes == NULL) {
               publishMessage("DECODE_ERROR");
             } else {
-              memcpy((void *)webp_data.bytes, tmpbuf, bufsize);
+              memcpy((void *)webp_data.bytes, buffer, buffer_size);
 
               //set display flags!
-              newapplet = true;
-              currentMode = APPLET;
+              has_new_applet = true;
+              current_mode = APPLET;
               publishMessage("PUSHED");
             }
-            free(tmpbuf);
+            free(buffer);
           } else {
             publishMessage("DECODE_ERROR");
           }
-          bufferPos = 0;
-          recv_length = false;
+          buffer_position = 0;
+          has_received_size = false;
         } else {
-            memcpy((void *)(tmpbuf+bufferPos), payloadstr, length);
-            bufferPos += length;
+            memcpy((void *)(buffer+buffer_position), payloadstr, length);
+            buffer_position += length;
             publishMessage("OK");
         }
     }
@@ -313,18 +271,15 @@ class SmartMatrixComponent : public Component, public CustomMQTTDevice {
   }
 
   void setup() override {
-    esp_read_mac(baseMac, ESP_MAC_WIFI_STA);
-    sprintf(macFull, "%02X%02X%02X", baseMac[3], baseMac[4], baseMac[5]);
-
-    Serial.println("smart-matrix: id: " + String(macFull));
-
-    snprintf_P(applet_topic, 22, PSTR("%s/%s/rx"), TOPIC_PREFIX, macFull);
-    snprintf_P(applet_rts_topic, 26, PSTR("%s/%s/tx"), TOPIC_PREFIX, macFull);
+    esp_read_mac(mac_address, ESP_MAC_WIFI_STA);
+    sprintf(config_identifier, "%02X%02X%02X", mac_address[3], mac_address[4], mac_address[5]);
+    snprintf_P(applet_topic, 22, PSTR("%s/%s/rx"), TOPIC_PREFIX, config_identifier);
+    snprintf_P(applet_rts_topic, 26, PSTR("%s/%s/tx"), TOPIC_PREFIX, config_identifier);
 
     if (!display_initialized) {
       dma_display.begin();
       dma_display.clearScreen();
-      dma_display.setBrightness8(currentBrightness);
+      setBrightness(current_brightness);
 
       display_initialized = true;
 
@@ -354,28 +309,32 @@ class SmartMatrixComponent : public Component, public CustomMQTTDevice {
         need_publish = false;
       }
 
-      if (currentMode == APPLET) {
-        if (newapplet) {
+      if (!is_on) {
+        setBrightness(0);
+      }
+
+      if (current_mode == APPLET) {
+        if (has_new_applet) {
           demux = WebPDemux(&webp_data);
           frame_count = WebPDemuxGetI(demux, WEBP_FF_FRAME_COUNT);
           webp_flags = WebPDemuxGetI(demux, WEBP_FF_FORMAT_FLAGS);
 
-          newapplet = false;
+          has_new_applet = false;
           current_frame = 1;
         } else {
           if (webp_flags & ANIMATION_FLAG) {
             if (millis() - last_frame_time > last_frame_duration) {
               if (WebPDemuxGetFrame(demux, current_frame, &iter)) {
-                if (WebPDecodeRGBAInto(iter.fragment.bytes, iter.fragment.size, tempPixelBuffer, iter.width * iter.height * 4, iter.width * 4) != NULL) {
+                if (WebPDecodeRGBAInto(iter.fragment.bytes, iter.fragment.size, pixel_buffer, iter.width * iter.height * 4, iter.width * 4) != NULL) {
                   int px = 0;
                   for (int y = iter.y_offset; y < (iter.y_offset + iter.height); y++) {
                     for(int x = iter.x_offset; x < (iter.x_offset + iter.width); x++) {
                       int pixelOffsetCF = ((y*MATRIX_WIDTH)+x)*3;
                       int pixelOffsetFT = px*4;
-                      int alphaValue = tempPixelBuffer[pixelOffsetFT+3];
+                      int alphaValue = pixel_buffer[pixelOffsetFT+3];
                       
                       if(alphaValue == 255) {
-                        dma_display.writePixel(x,y, dma_display.color565(tempPixelBuffer[pixelOffsetFT],tempPixelBuffer[pixelOffsetFT+1],tempPixelBuffer[pixelOffsetFT+2]));
+                        dma_display.writePixel(x,y, dma_display.color565(pixel_buffer[pixelOffsetFT],pixel_buffer[pixelOffsetFT+1],pixel_buffer[pixelOffsetFT+2]));
                       }
                       
                       px++;
@@ -390,25 +349,25 @@ class SmartMatrixComponent : public Component, public CustomMQTTDevice {
                   }
               }
               } else {
-                currentMode = NONE;
+                current_mode = NONE;
               }
             }
           } else {
             //Static WebP
-            if (WebPDecodeRGBInto(webp_data.bytes, webp_data.size, tempPixelBuffer, dma_display.height() * dma_display.width() * 3, dma_display.width() * 3) != NULL) {
+            if (WebPDecodeRGBInto(webp_data.bytes, webp_data.size, pixel_buffer, dma_display.height() * dma_display.width() * 3, dma_display.width() * 3) != NULL) {
               for (int y = 0; y < dma_display.height(); y++) {
                 for (int x = 0; x < dma_display.width(); x++) {
                   int pixBitStart = ((y*dma_display.width())+x)*3;
-                  dma_display.writePixel(x,y, dma_display.color565(tempPixelBuffer[pixBitStart],tempPixelBuffer[pixBitStart+1],tempPixelBuffer[pixBitStart+2]));
+                  dma_display.writePixel(x,y, dma_display.color565(pixel_buffer[pixBitStart],pixel_buffer[pixBitStart+1],pixel_buffer[pixBitStart+2]));
                 }
               }
 
-              currentMode = NONE;
+              current_mode = NONE;
             }
           }
         }
       } else {
-        showReady("Ready", macFull);
+        showReady("Ready", config_identifier);
       }
     }
   }

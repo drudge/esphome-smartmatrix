@@ -55,3 +55,12 @@ light:
       - name: "Matrix Display"
         restore_mode: RESTORE_DEFAULT_ON
         icon: "mdi:brightness-percent"
+
+text_sensor:
+  - platform: template
+    name: "Device ID"
+    icon: "mdi:identifier"
+    id: device_identifier
+    lambda: |-
+      return {config_identifier};
+    update_interval: 60s

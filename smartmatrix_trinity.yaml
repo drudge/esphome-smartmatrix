@@ -1,5 +1,3 @@
-!include smartmatrix.yaml
-
 esp32_touch:
   setup_mode: false
 
@@ -23,3 +21,5 @@ binary_sensor:
     on_press:
       then:
         - lambda: changeBrightness(-8);
+
+<<: !include smartmatrix.yaml

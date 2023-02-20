@@ -59,7 +59,7 @@ jobs:
         run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
         
       - name: test 
-        run: ls -lah firmware/*
+        run: ls -lah ${{steps.download.outputs.download-path}}
       
       - name: Create Release
         id: create_release
@@ -68,6 +68,6 @@ jobs:
           name: Release ${{ steps.get_sha.outputs.sha_short }}
           tag: ${{ steps.get_sha.outputs.sha_short }}
           commit: ${{ github.sha }}
-          artifacts: "firmware/*.bin"
+          artifacts: "${{steps.download.outputs.download-path}}/firmware/*.bin"
           draft: true
           generateReleaseNotes: true

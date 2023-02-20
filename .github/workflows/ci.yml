@@ -59,7 +59,7 @@ jobs:
         run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
         
       - name: test 
-        run: ls -lah firmware
+        run: ls -lah firmware/*
       
       - name: Create Release
         id: create_release

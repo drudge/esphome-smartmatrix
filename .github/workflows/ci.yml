@@ -5,7 +5,7 @@ on:
     branches: [main]
 
 jobs:
-  ci:
+  build:
     name: Building ${{ matrix.file }}
     runs-on: ubuntu-latest
     strategy:
@@ -41,3 +41,36 @@ jobs:
         with:
           name: firmware
           path: firmware
+
+  release:
+    runs-on: ubuntu-latest
+    needs: build
+    if: success() || failure()
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v2
+      
+      - name: Download reports' artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: firmware
+          
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: true
+          prerelease: false
+      
+      - name: Upload Release Assets
+        id: upload-release-assets
+        uses: dwenegar/upload-release-assets@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          release_id: ${{ steps.create_release.outputs.id }}
+          assets_path: firmware

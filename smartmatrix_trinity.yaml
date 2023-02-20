@@ -1,0 +1,25 @@
+!include smartmatrix.yaml
+
+esp32_touch:
+  setup_mode: false
+
+binary_sensor:
+  - platform: esp32_touch
+    id: t8_touchpad
+    name: "T8 Touchpad"
+    icon: "mdi:fingerprint"
+    pin: GPIO33
+    threshold: 600
+    on_press:
+      then:
+        - lambda: changeBrightness(8);
+
+  - platform: esp32_touch
+    id: t9_touchpad
+    name: "T9 Touchpad"
+    icon: "mdi:fingerprint"
+    pin: GPIO32
+    threshold: 600
+    on_press:
+      then:
+        - lambda: changeBrightness(-8);

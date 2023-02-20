@@ -32,7 +32,10 @@ jobs:
       
       - name: Rename firmware image to match yaml
         run: |
-          mkdir firmware && mv "${{ steps.esphome-build.outputs.name }}" firmware/${{ steps.replacer.outputs.replaced }}
+          SOURCE_FILE=${{ matrix.file }}
+          OUTPUT_FILE=${SOURCE_FILE/yaml/bin}
+          echo $OUTPUT_FILE
+          mkdir firmware && mv "${{ steps.esphome-build.outputs.name }}/${{ steps.esphome-build.outputs.name }}.bin" firmware/$OUTPUT_FILE
 
       - uses: actions/upload-artifact@v3.1.2
         with:

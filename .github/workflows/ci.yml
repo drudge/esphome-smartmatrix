@@ -25,5 +25,5 @@ jobs:
           mv "${{ steps.esphome-build.outputs.name }}" firmware/
       - uses: actions/upload-artifact@v3.1.2
         with:
-          name: ${{ inputs.name }}
+          name: ${{ matrix.file }}
           path: firmware

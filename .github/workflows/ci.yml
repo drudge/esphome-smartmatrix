@@ -67,5 +67,6 @@ jobs:
           tag: ${{ steps.get_sha.outputs.sha_short }}
           commit: ${{ github.sha }}
           artifacts: ${{steps.download.outputs.download-path}}/firmware/*.bin
-          draft: true
+          prerelease: true
           generateReleaseNotes: true
+          replacesArtifacts: true

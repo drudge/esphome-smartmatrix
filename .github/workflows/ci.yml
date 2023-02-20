@@ -70,7 +70,6 @@ jobs:
           name: Release ${{ steps.get_sha.outputs.sha_short }}
           tag: ${{ steps.get_sha.outputs.sha_short }}
           commit: ${{ github.sha }}
-          artifacts: |
-            - ${{steps.download.outputs.download-path}}/firmware/*.bin
+          artifacts: ${{steps.download.outputs.download-path}}/firmware/*.bin
           draft: true
           generateReleaseNotes: true

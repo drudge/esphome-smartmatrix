@@ -34,7 +34,6 @@ jobs:
         run: |
           SOURCE_FILE=${{ matrix.file }}
           OUTPUT_FILE=${SOURCE_FILE/yaml/bin}
-          echo $OUTPUT_FILE
           mkdir firmware && mv "${{ steps.esphome-build.outputs.name }}/${{ steps.esphome-build.outputs.name }}.bin" firmware/$OUTPUT_FILE
 
       - uses: actions/upload-artifact@v3.1.2
@@ -56,13 +55,14 @@ jobs:
           path: firmware
       
       - name: Get short SHA
-        run: echo "SHORT_SHA=$("${{ github.sha }}".SubString(0, 8))" >> $env:GITHUB_ENV
-
+        id: get_sha
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+        
       - name: Create Release
         id: create_release
         uses: ncipollo/release-action@v1
         with:
-          name: Release ${{ env.SHORT_SHA }}
+          name: Release ${{ steps.get_sha.outputs.sha_short }}
           artifacts: "firmware/*.bin"
           draft: true
           generateReleaseNotes: true

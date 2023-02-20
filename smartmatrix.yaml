@@ -12,9 +12,7 @@ esphome:
     - smartmatrix.h
 
 mqtt:
-#  broker: !secret mqtt_hostname
-#  username: !secret mqtt_username
-#  password: !secret mqtt_password
+ broker: localhost:1883
 
 esp32:
   board: esp32dev

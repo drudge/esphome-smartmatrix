@@ -41,13 +41,11 @@ To switch, uncomment the `#define TIDBYT` or `#define ADAFRUIT_FEATHER_WING` acc
 
 Tha Matrix Display will appear as a light in Home Assistant. You can turn the display on or off and adjust the brightness. Brightness levels are saved and will restore on device boot.
 
-This can be useful to use in your automations to enable auto-dimming at sunset, etc.
-
 ### ESP32 Trinity Example
 
 The ESP32 Trinity board has two useful touchpads that we can tap into. Here is an example that uses them to control the brightness of the display:
 
-````yaml
+```yaml
 esp32_touch:
   setup_mode: false
 

@@ -292,7 +292,9 @@ class SmartMatrixComponent : public Component, public CustomMQTTDevice {
   }
 
   void loop() override {
-    if (!is_connected()) {
+    if (global_wifi_component->status_ == WIFI_COMPONENT_STATE_AP) {
+      showReady("Join WiFi", global_wifi_component->ssid_);
+    } else if (!is_connected()) {
       showConnecting("Connecting.  ");
       delay(400);
       showConnecting("Connecting.. ");

@@ -2,15 +2,14 @@
 
 ![219930526-6cdd91fe-4f57-40fa-a8c9-399ac05e1864](https://user-images.githubusercontent.com/72890/219930692-824a2063-1788-4628-8d7f-fdbc240b5191.png)
 
-[SmartMatrix-ESP32](https://github.com/acvigue/SmartMatrix-ESP32) firmware for the internet connected display running on [ESPHome](https://esphome.io/index.html).
+[SmartMatrix](https://github.com/acvigue/SmartMatrix-ESP32) firmware for the internet connected display using [ESPHome](https://esphome.io/index.html).
 
-* Requires the [SmartMatrixServer](https://github.com/drudge/smart-matrix-server) to function.
-* Built on the work by [acvique](https://github.com/acvigue/SmartMatrix-ESP32).
+* Requires the [SmartMatrix server](https://github.com/drudge/smart-matrix-server) to function.
 * Applets are written in [Starlark](https://github.com/google/starlark-go/blob/master/doc/spec.md) using the [Pixlet](https://tidbyt.dev/docs/build/build-for-tidbyt) runtime.
 * The matrix display is powered by [ESP32-HUB75-MatrixPanel-DMA](https://github.com/mrfaptastic/ESP32-HUB75-MatrixPanel-DMA).
 * The [ESP32 Trinity](https://esp32trinity.com/) by Brian Lough is a great board to use with SmartMatrix.
 * This [64x32 panel from Waveshare](https://www.waveshare.com/rgb-matrix-p3-64x32.htm?amazon) works great with the library and is reasonably priced.
-
+* Based on work by [acvique](https://github.com/acvigue/SmartMatrix-ESP32).
 
 # Pinouts
 
@@ -40,14 +39,13 @@ To switch, uncomment the `#define TIDBYT` or `#define ADAFRUIT_FEATHER_WING` acc
 
 # Home Assistant
 
-Tha Matrix Display will appear as a light in Home Assistant. You can turn the display on or off, and also adjust the brightness as well. Brightness will be saved and restored when the device reboots.
+Tha Matrix Display will appear as a light in Home Assistant. You can turn the display on or off and adjust the brightness. Brightness levels are saved and will restore on device boot.
 
 This can be useful to use in your automations to enable auto-dimming at sunset, etc.
 
 ### ESP32 Trinity Example
 
-The ESP32 Trinity board has two useful touchpads that we can tap into. Here is an example that uses them to control the brightness of the display. `setBrightness` and `changeBrightness` are helpers, but you can access the `dma_display` object to use the HUB75-MatrixPanel-DMA display object directly.
-
+The ESP32 Trinity board has two useful touchpads that we can tap into. Here is an example that uses them to control the brightness of the display:
 
 ````yaml
 esp32_touch:
@@ -74,3 +72,5 @@ binary_sensor:
       then:
         - lambda: changeBrightness(-6);
 ```
+
+Note: `setBrightness` and `changeBrightness` are helpers, but you can access the `dma_display` variable to use the HUB75-MatrixPanel-DMA display object directly in your lambdas.

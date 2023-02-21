@@ -1,6 +1,7 @@
 esphome:
   name: smartmatrix
   friendly_name: smartmatrix
+  name_add_mac_suffix: true
   libraries:
     - Wire
     - SPI

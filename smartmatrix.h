@@ -95,7 +95,7 @@ void showReady(const char *message, const char *id) {
   dma_display.print(id);
 }
 
-void sayHello() {
+void sayHello(char* message = "Hello") {
   if (!display_initialized) {
     return;
   }
@@ -103,7 +103,6 @@ void sayHello() {
   int16_t xOne, yOne;
   uint16_t w, h;
   uint8_t targetBrightness = 0;
-  const char* message = "Hello";
 
   dma_display.clearScreen();
   dma_display.setBrightness8(targetBrightness);
@@ -292,7 +291,9 @@ class SmartMatrixComponent : public Component, public CustomMQTTDevice {
   }
 
   void loop() override {
-    if (!is_connected()) {
+    if (!esphome::wifi::global_wifi_component->has_sta()) {
+      sayHello("Join WiFi");
+    } else if (!is_connected()) {
       showConnecting("Connecting.  ");
       delay(400);
       showConnecting("Connecting.. ");
@@ -366,7 +367,7 @@ class SmartMatrixComponent : public Component, public CustomMQTTDevice {
             }
           }
         }
-      } else {
+      } else if (current_mode == WELCOME) {
         showReady("Ready", config_identifier);
       }
     }

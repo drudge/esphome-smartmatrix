@@ -1,15 +1,10 @@
 
 #pragma once
+
 #include "esphome.h"
-
 #include <ESP32-HUB75-MatrixPanel-I2S-DMA.h>
-
 #include <webp/demux.h>
-
 #include <Fonts/TomThumb.h>
-
-//#define TIDBYT
-//#define ADAFRUIT_FEATHER_WING
 
 #define TOPIC_PREFIX "plm"
 
@@ -18,15 +13,21 @@ const int APPLET = 2;
 const int NONE = 0;
 
 #ifdef TIDBYT
-HUB75_I2S_CFG::i2s_pins _pins = { 21, 2, 22, 23, 4, 27, 26, 5, 25, 18, -1, 19, 32, 33 };
-#elseif ADAFRUIT_FEATHER_WING
-HUB75_I2S_CFG::i2s_pins _pins ={ 6, 5, 9, 11, 10, 12, 8, 14, 15, 16, -1, 38, 39, 13 };
+#pragma message "Compiling for Tidbyt pins"
+//HUB75_I2S_CFG::i2s_pins _pins = { 21, 2, 22, 23, 4, 27, 26, 5, 25, 18, -1, 19, 32, 16 }; // official pinout
+HUB75_I2S_CFG::i2s_pins _pins = { 2, 22, 21, 4, 27, 23, 26, 5, 25, 18, -1, 19, 32, 33 }; // what actually works for me
+#endif
+
+#if !defined(TIDBYT) && defined(ADAFRUIT_FEATHER_WING)
+#pragma message "Compiling for Adafruit RGB Matrix Feather Wing pins"
+HUB75_I2S_CFG::i2s_pins _pins = { 6, 5, 9, 11, 10, 12, 8, 14, 15, 16, -1, 38, 39, 13 };
 #endif
 
 #if defined(TIDBYT) || defined(ADAFRUIT_FEATHER_WING)
 HUB75_I2S_CFG matrix_config(MATRIX_WIDTH, MATRIX_HEIGHT, CHAIN_LENGTH, _pins);
 MatrixPanel_I2S_DMA dma_display = MatrixPanel_I2S_DMA(matrix_config);
 #else
+#pragma message "Compiling with default pins"
 MatrixPanel_I2S_DMA dma_display = MatrixPanel_I2S_DMA();
 #endif
 
@@ -301,6 +302,10 @@ class SmartMatrixComponent : public Component, public CustomMQTTDevice {
       showConnecting("Connecting...");
       delay(400);
     } else {
+      if (!is_on) {
+        setBrightness(0);
+      }
+
       if (need_subscribe) {
         attachToServer();
       }
@@ -308,10 +313,6 @@ class SmartMatrixComponent : public Component, public CustomMQTTDevice {
       if (need_publish) {
         publish(applet_rts_topic, messageToPublish);
         need_publish = false;
-      }
-
-      if (!is_on) {
-        setBrightness(0);
       }
 
       if (current_mode == APPLET) {

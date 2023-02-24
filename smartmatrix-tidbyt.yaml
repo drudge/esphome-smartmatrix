@@ -1,0 +1,71 @@
+esphome:
+  name: smart-matrix-tidbyt
+  friendly_name: smart-matrix-tidbyt
+  project:
+    name: "drudge.smartmatrix"
+    version: 0.0.1
+  platformio_options:
+    build_flags:
+      - "-DTIDBYT"
+  libraries:
+    - Wire
+    - SPI
+    - Adafruit BusIO
+    - Adafruit GFX Library
+    - ESP32 HUB75 LED MATRIX PANEL DMA Display
+    - https://github.com/acvigue/libwebp
+  includes:
+    - smart_matrix.h
+
+mqtt:
+  broker: !secret mqtt_hostname
+  username: !secret mqtt_username
+  password: !secret mqtt_password
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+
+ota:
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    password: "smartmatrix"
+
+captive_portal:
+
+custom_component:
+  - lambda: |-
+      auto smart_matrix = new SmartMatrixComponent();
+      return {smart_matrix};
+    components:
+    - id: smart_matrix
+
+light:
+  - platform: custom
+    lambda: |-
+      auto matrix_brightness = new SmartMatrixBrightnessOutput();
+      App.register_component(matrix_brightness);
+      return {matrix_brightness};
+    lights:
+      - name: "Matrix Display"
+        restore_mode: RESTORE_DEFAULT_ON
+        icon: "mdi:card-text-outline"
+
+text_sensor:
+  - platform: template
+    name: "Device ID"
+    icon: "mdi:identifier"
+    id: device_identifier
+    lambda: |-
+      return {config_identifier};
+    update_interval: 600s
